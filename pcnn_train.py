@@ -272,11 +272,26 @@ if __name__ == '__main__':
             ema.restore(model)
         
         if (epoch + 1) % args.save_interval == 0: 
-            if not os.path.exists("models"):
-                os.makedirs("models")
+            # if not os.path.exists("models"):
+            #     os.makedirs("models")
+            local_dir = './models' 
+            os.makedirs(local_dir, exist_ok=True)
+
+            CKPT_DIR = '/content/drive/MyDrive/CPEN455/models'
+            os.makedirs(CKPT_DIR, exist_ok=True)
+
 
             ema.copy_to(model)
-            torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
+
+            # torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
+            torch.save(model.state_dict(), f'{local_dir}/{model_name}_{epoch+1}.pth')
+            torch.save(model.state_dict(), f'{CKPT_DIR}/epoch_{epoch+1}.pth')
+
+            torch.save({'epoch': epoch+1,
+                'model': model.state_dict(),
+                'optim': optimizer.state_dict()},
+               f'{CKPT_DIR}/pcnn_e{epoch+1}.pth')
+               
             ema.restore(model)
 
     save_name = f'models/conditional_pixelcnn_{args.tag}.pth'
