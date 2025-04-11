@@ -34,7 +34,7 @@ def get_label(model, model_input, device):
     for nr_label in range (NUM_CLASSES):
         labels = torch.full((B,),nr_label, dtype=torch.long).to(device)
         out = model(model_input, labels)
-        log_likelihood = - discretized_mix_logistic_loss(model_input,out)
+        log_likelihood = - discretized_mix_logistic_loss(model_input,out,Bayes=True)
         a_log_likelihood.append(log_likelihood.view(-1,1))
 
     log_likelihood = torch.cat(a_log_likelihood,dim=1)
@@ -97,11 +97,6 @@ if __name__ == '__main__':
         print('✅ model parameters loaded')
     else:
         raise FileNotFoundError(f"❌ Model file not found at {model_path}")
-    if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path))
-        print('model parameters loaded')
-    else:
-        raise FileNotFoundError(f"Model file not found at {model_path}")
 
     model.eval()
     
