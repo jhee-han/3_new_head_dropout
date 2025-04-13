@@ -3,19 +3,19 @@ from layers import *
 import pdb
 
 class PixelCNNLayer_up(nn.Module):
-    def __init__(self, nr_resnet, nr_filters, resnet_nonlinearity):
+    def __init__(self, nr_resnet, nr_filters, resnet_nonlinearity,film=False, embedding_dim=None):
         super(PixelCNNLayer_up, self).__init__()
         self.nr_resnet = nr_resnet
         # stream from pixels above
         self.u_stream = nn.ModuleList([gated_resnet(nr_filters, down_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=0,film=True, embedding_dim=embedding_dim)
+                                        resnet_nonlinearity, skip_connection=0,film=film, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
         #u_stream이라는 instance 생성 
         #Modulelist는 리스트 형태로 여러 레이어 instance를 보관할 때 사용
 
         # stream from pixels above and to thes left
         self.ul_stream = nn.ModuleList([gated_resnet(nr_filters, down_right_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=1,film=True, embedding_dim=embedding_dim)
+                                        resnet_nonlinearity, skip_connection=1,film=film, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
     def forward(self, u, ul,class_embedding):
@@ -36,12 +36,12 @@ class PixelCNNLayer_down(nn.Module):
         self.nr_resnet = nr_resnet
         # stream from pixels above
         self.u_stream  = nn.ModuleList([gated_resnet(nr_filters, down_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=1,film=True, embedding_dim=embedding_dim)
+                                        resnet_nonlinearity, skip_connection=1,film=film, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
         # stream from pixels above and to thes left
         self.ul_stream = nn.ModuleList([gated_resnet(nr_filters, down_right_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=2,film=True, embedding_dim=embedding_dim)
+                                        resnet_nonlinearity, skip_connection=2,film=film, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
     def forward(self, u, ul, u_list, ul_list,class_embedding):
@@ -55,7 +55,7 @@ class PixelCNNLayer_down(nn.Module):
 
 class PixelCNN(nn.Module):
     def __init__(self, nr_resnet=5, nr_filters=80, nr_logistic_mix=10,
-                    resnet_nonlinearity='concat_elu', input_channels=3, num_classes=4, embedding_dim=80):
+                    resnet_nonlinearity='concat_elu', input_channels=3, num_classes=4, embedding_dim=80, film=True):
         super(PixelCNN, self).__init__()
         if resnet_nonlinearity == 'concat_elu' :
             self.resnet_nonlinearity = lambda x : concat_elu(x)
@@ -68,13 +68,15 @@ class PixelCNN(nn.Module):
         self.right_shift_pad = nn.ZeroPad2d((1, 0, 0, 0))
         self.down_shift_pad  = nn.ZeroPad2d((0, 0, 1, 0))
         self.embedding = nn.Embedding(num_classes, nr_filters)
+        self.film = film
+        self.embedding_dim = embedding_dim
 
         down_nr_resnet = [nr_resnet] + [nr_resnet + 1] * 2 #[5,6,6]
         self.down_layers = nn.ModuleList([PixelCNNLayer_down(down_nr_resnet[i], nr_filters,
-                                                self.resnet_nonlinearity) for i in range(3)])
+                                                self.resnet_nonlinearity,film=self.film, embedding_dim=self.embedding_dim) for i in range(3)])
 
         self.up_layers   = nn.ModuleList([PixelCNNLayer_up(nr_resnet, nr_filters,
-                                                self.resnet_nonlinearity) for _ in range(3)])
+                                                self.resnet_nonlinearity,film=self.film, embedding_dim=self.embedding_dim) for _ in range(3)])
 
         self.downsize_u_stream  = nn.ModuleList([down_shifted_conv2d(nr_filters, nr_filters,
                                                     stride=(2,2)) for _ in range(2)])
