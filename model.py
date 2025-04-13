@@ -123,10 +123,10 @@ class PixelCNN(nn.Module):
             xs = [int(y) for y in x.size()]
             padding = Variable(torch.ones(xs[0], 1, xs[2], xs[3]), requires_grad=False)
             padding = padding.cuda() if x.is_cuda else padding
-            x = torch.cat((x, padding), 1)
+            x = torch.cat((x, padding,class_mask), 1)
 
         ###      UP PASS    ###
-        x = x if sample else torch.cat((x, self.init_padding), 1)
+        x = x if sample else torch.cat((x, self.init_padding,class_mask), 1)
         u_list  = [self.u_init(x)]
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)] #초기 feature map생성
         for i in range(3):
