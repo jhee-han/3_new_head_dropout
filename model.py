@@ -18,7 +18,7 @@ class PixelCNNLayer_up(nn.Module):
                                         resnet_nonlinearity, skip_connection=1,film=film, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
-    def forward(self, u, ul,class_embed_vec):
+    def forward(self, u, ul,class_embed_vec,class_embed_map):
         u_list, ul_list = [], []
 
         for i in range(self.nr_resnet):
@@ -44,7 +44,7 @@ class PixelCNNLayer_down(nn.Module):
                                         resnet_nonlinearity, skip_connection=2,film=film, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
-    def forward(self, u, ul, u_list, ul_list,class_embedding):
+    def forward(self, u, ul, u_list, ul_list,class_embedding,class_embed_map):
         for i in range(self.nr_resnet):
             u  = self.u_stream[i](u, a=u_list.pop()+ class_embedding, class_embed=class_embedding)
             class_embedding_2=class_embedding.size(1) *2
@@ -126,7 +126,7 @@ class PixelCNN(nn.Module):
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)] #초기 feature map생성
         for i in range(3):
             # resnet block
-            u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1],class_embed_vec)
+            u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1],class_embed_vec, class_embed_map)
             u_list  += u_out
             ul_list += ul_out
 
@@ -141,7 +141,7 @@ class PixelCNN(nn.Module):
 
         for i in range(3):
             # resnet block
-            u, ul = self.down_layers[i](u, ul, u_list, ul_list,class_embed_vec)
+            u, ul = self.down_layers[i](u, ul, u_list, ul_list,class_embed_vec, class_embed_map)
 
             # upscale (only twice)
             if i != 2 :
