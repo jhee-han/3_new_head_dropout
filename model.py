@@ -101,6 +101,16 @@ class PixelCNN(nn.Module):
 
         num_mix = 3 if self.input_channels == 1 else 10
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
+
+        self.classifier_head = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(nr_filters,num_classes)
+        )
+
+        self.label_drop = 0.25
+
+
         self.init_padding = None
 
 
@@ -113,6 +123,10 @@ class PixelCNN(nn.Module):
         #one hot mask
         class_mask = F.one_hot(class_labels, num_classes=self.embedding.num_embeddings).float()
         class_mask = class_mask[:, :, None, None].expand(-1, -1, x.shape[2], x.shape[3])  # (B, 4, H, W)
+
+        if self.training:
+            keep_mask = (torch.rand(class_embed_vec.size(0),1, device = class_embed_vec.device) > self.label_drop).float()
+            class_embed_vec = class_embed_vec * keep_mask
 
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -154,11 +168,13 @@ class PixelCNN(nn.Module):
                 ul = self.upsize_ul_stream[i](ul)
 
         x_out = self.nin_out(F.elu(ul))
-        # pdb.set_trace()
+
+        logits = self.classifier_head(ul)
+              
 
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
 
-        return x_out
+        return x_out, logits
     
     
 class random_classifier(nn.Module):

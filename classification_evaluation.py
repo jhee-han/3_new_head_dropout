@@ -26,20 +26,27 @@ def get_label(model, model_input, device):
     # Write your code here, replace the random classifier with your trained model
     # and return the predicted label, which is a tensor of shape (batch_size,)
     
-    B = model_input.size(0) #B
-    model_input = model_input.to(device)
+    # B = model_input.size(0) #B
+    # model_input = model_input.to(device)
 
-    a_log_likelihood = []
+    # a_log_likelihood = []
 
-    for nr_label in range (NUM_CLASSES):
-        labels = torch.full((B,),nr_label, dtype=torch.long).to(device)
-        out = model(model_input, labels)
-        log_likelihood = - discretized_mix_logistic_loss(model_input,out,Bayes=True)
-        a_log_likelihood.append(log_likelihood.view(-1,1))
+    # for nr_label in range (NUM_CLASSES):
+    #     labels = torch.full((B,),nr_label, dtype=torch.long).to(device)
+    #     out = model(model_input, labels)
+    #     log_likelihood = - discretized_mix_logistic_loss(model_input,out,Bayes=True)
+    #     a_log_likelihood.append(log_likelihood.view(-1,1))
 
-    log_likelihood = torch.cat(a_log_likelihood,dim=1)
-    answer = torch.argmax(log_likelihood,dim=1)
-    return answer
+    # log_likelihood = torch.cat(a_log_likelihood,dim=1)
+    # answer = torch.argmax(log_likelihood,dim=1)
+    # return answer
+    with torch.no_grad():
+        dummy_lbl = torch.zeros(model_input.size(0), dtype=torch.long,
+                                device=device)  
+       _, logits = model(model_input.to(device), dummy_lbl)
+    return torch.argmax(logits, dim=1)    
+
+
 # End of your code
 
 def classifier(model, data_loader, device):

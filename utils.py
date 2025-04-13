@@ -199,7 +199,7 @@ def sample(model, sample_batch_size, obs, sample_op,labels): #obs는 이미지 �
         for i in range(obs[1]):
             for j in range(obs[2]):
                 data_v = data
-                out   = model(data_v,class_labels=labels, sample=True)
+                out, _   = model(data_v,class_labels=labels, sample=True)
                 out_sample = sample_op(out)
                 data[:, :, i, j] = out_sample.data[:, :, i, j]
     return data

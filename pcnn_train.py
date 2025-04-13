@@ -26,13 +26,22 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     for batch_idx, (model_input,labels) in enumerate(tqdm(data_loader)):
         model_input = model_input.to(device) #model_input.shape torch.Size([64, 3, 32, 32])
         labels = labels.to(device)
-        model_output = model(model_input,labels) #model_output.shape torch.Size([64, 50, 32, 32])
+        # model_output = model(model_input,labels) #model_output.shape torch.Size([64, 50, 32, 32])
         # pdb.set_trace()
         # sum over discretized_mix_logistic_loss
-        if mode == 'training':
-            loss = loss_op(model_input, model_output, Bayes=False)
-        else:
-            loss = loss_op(model_input, model_output,Bayes=True)
+        # if mode == 'training':
+            # loss = loss_op(model_input, model_output, Bayes=False)
+        # else:
+            # loss = loss_op(model_input, model_output,Bayes=True)
+
+        pix_out, logits = model(model_input, labels)
+
+        nll = loss_op(model_input, pix_out, Bayes = (mode != 'training'))
+
+        ce = F.cross_entropy(logits,labels)
+
+        loss_lambda = 0.3
+        loss = nll + loss_lambda *ce
 
         loss_tracker.update(loss.item()/deno)
         if mode == 'training':
