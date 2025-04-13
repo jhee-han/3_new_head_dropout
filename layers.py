@@ -139,7 +139,7 @@ class gated_resnet(nn.Module):
         if a is not None :
             x += self.nin_skip(self.nonlinearity(a))
 
-        if self.film and class_embed is not None:
+        if class_embed is not None:
             gamma = self.film_gamma(class_embed).unsqueeze(-1).unsqueeze(-1)
             beta = self.film_beta(class_embed).unsqueeze(-1).unsqueeze(-1)
             x = gamma*x + beta
