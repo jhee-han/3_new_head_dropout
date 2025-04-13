@@ -124,8 +124,8 @@ class gated_resnet(nn.Module):
         self.film = film
 
         if self.film:
-            self.film_gamma = nn.Linear(num_filters, num_filters)
-            self.film_beta = nn.Linear(num_filters, num_filters)
+            self.film_gamma = nn.Linear(embedding_dim, num_filters)
+            self.film_beta = nn.Linear(embedding_dim, num_filters)
 
         if skip_connection != 0 :
             self.nin_skip = nin(2 * skip_connection * num_filters, num_filters)
