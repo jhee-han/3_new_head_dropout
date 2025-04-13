@@ -91,12 +91,12 @@ class PixelCNN(nn.Module):
         self.upsize_ul_stream = nn.ModuleList([down_right_shifted_deconv2d(nr_filters,
                                                     nr_filters, stride=(2,2)) for _ in range(2)])
 
-        self.u_init = down_shifted_conv2d(input_channels + 1, nr_filters, filter_size=(2,3),
+        self.u_init = down_shifted_conv2d(8, nr_filters, filter_size=(2,3),
                         shift_output_down=True)
 
-        self.ul_init = nn.ModuleList([down_shifted_conv2d(input_channels + 1, nr_filters,
+        self.ul_init = nn.ModuleList([down_shifted_conv2d(8, nr_filters,
                                             filter_size=(1,3), shift_output_down=True),
-                                       down_right_shifted_conv2d(input_channels + 1, nr_filters,
+                                       down_right_shifted_conv2d(8, nr_filters,
                                             filter_size=(2,1), shift_output_right=True)])
 
         num_mix = 3 if self.input_channels == 1 else 10
@@ -109,6 +109,10 @@ class PixelCNN(nn.Module):
         class_embed_vec =self.embedding(class_labels)  # (B, embedding_dim)
         # class_embedding = class_embedding.view(class_embedding.size(0),class_embedding.size(1),1,1) # (B, embedding_dim,1,1)
         class_embed_map = class_embed_vec[:, :, None, None]
+
+        #one hot mask
+        class_mask = F.one_hot(class_labels, num_classes=self.embedding.num_embeddings).float()
+        class_mask = class_mask[:, :, None, None].expand(-1, -1, x.shape[2], x.shape[3])  # (B, 4, H, W)
 
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
