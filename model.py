@@ -47,8 +47,9 @@ class PixelCNNLayer_down(nn.Module):
     def forward(self, u, ul, u_list, ul_list,class_embed_vec,class_embed_map):
         for i in range(self.nr_resnet):
             u  = self.u_stream[i](u, a=u_list.pop()+ class_embed_map, class_embed=class_embed_vec)
+            a_skip = torch.cat((u, ul_list.pop()), 1)
             # class_embedding_2=class_embedding.size(1) *2
-            ul = self.ul_stream[i](ul, a=torch.cat((u, ul_list.pop()), 1)+class_embed_map, class_embed=class_embed_vec) #(B, embedding_dim)
+            ul = self.ul_stream[i](ul, a=a_skip, class_embed=class_embed_vec) #(B, embedding_dim)
 
         return u, ul
 
