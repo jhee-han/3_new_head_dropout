@@ -116,11 +116,16 @@ skip connection parameter : 0 = no skip connection
                             2 = skip connection where skip input size === 2 * input size
 '''
 class gated_resnet(nn.Module):
-    def __init__(self, num_filters, conv_op, nonlinearity=concat_elu, skip_connection=0):
+    def __init__(self, num_filters, conv_op, nonlinearity=concat_elu, skip_connection=0, film=False,embedding_dim=None):
         super(gated_resnet, self).__init__()
         self.skip_connection = skip_connection
         self.nonlinearity = nonlinearity
         self.conv_input = conv_op(2 * num_filters, num_filters) # cuz of concat elu
+        self.film = film
+
+        if self.film:
+            self.film_gamma = nn.Linear(num_filters, num_filters)
+            self.film_beta = nn.Linear(num_filters, num_filters)
 
         if skip_connection != 0 :
             self.nin_skip = nin(2 * skip_connection * num_filters, num_filters)
@@ -129,10 +134,16 @@ class gated_resnet(nn.Module):
         self.conv_out = conv_op(2 * num_filters, 2 * num_filters)
 
 
-    def forward(self, og_x, a=None):
+    def forward(self, og_x, a=None, class_embed=None):
         x = self.conv_input(self.nonlinearity(og_x))
         if a is not None :
             x += self.nin_skip(self.nonlinearity(a))
+
+        if self.film and class_embed is not None:
+            gamma = self.film_gamma(class_embed).unsqueeze(-1).unsqueeze(-1)
+            beta = self.film_beta(class_embed).unsqueeze(-1).unsqueeze(-1)
+            x = gamma*x + beta
+
         x = self.nonlinearity(x)
         x = self.dropout(x)
         x = self.conv_out(x)

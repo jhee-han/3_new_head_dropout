@@ -8,22 +8,22 @@ class PixelCNNLayer_up(nn.Module):
         self.nr_resnet = nr_resnet
         # stream from pixels above
         self.u_stream = nn.ModuleList([gated_resnet(nr_filters, down_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=0)
+                                        resnet_nonlinearity, skip_connection=0,film=True, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
         #u_stream이라는 instance 생성 
         #Modulelist는 리스트 형태로 여러 레이어 instance를 보관할 때 사용
 
         # stream from pixels above and to thes left
         self.ul_stream = nn.ModuleList([gated_resnet(nr_filters, down_right_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=1)
+                                        resnet_nonlinearity, skip_connection=1,film=True, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
     def forward(self, u, ul,class_embedding):
         u_list, ul_list = [], []
 
         for i in range(self.nr_resnet):
-            u  = self.u_stream[i](u)
-            ul = self.ul_stream[i](ul, a=u + class_embedding) #ul_stream은 gated_resnet의 instance이므로 gasted_resnet의 forward가 실행됨
+            u  = self.u_stream[i](u, class_embed = class_embedding)
+            ul = self.ul_stream[i](ul, a=u + class_embedding, class_embed=class_embedding) #ul_stream은 gated_resnet의 instance이므로 gasted_resnet의 forward가 실행됨
             u_list  += [u]
             ul_list += [ul]
 
@@ -36,19 +36,19 @@ class PixelCNNLayer_down(nn.Module):
         self.nr_resnet = nr_resnet
         # stream from pixels above
         self.u_stream  = nn.ModuleList([gated_resnet(nr_filters, down_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=1)
+                                        resnet_nonlinearity, skip_connection=1,film=True, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
         # stream from pixels above and to thes left
         self.ul_stream = nn.ModuleList([gated_resnet(nr_filters, down_right_shifted_conv2d,
-                                        resnet_nonlinearity, skip_connection=2)
+                                        resnet_nonlinearity, skip_connection=2,film=True, embedding_dim=embedding_dim)
                                             for _ in range(nr_resnet)])
 
     def forward(self, u, ul, u_list, ul_list,class_embedding):
         for i in range(self.nr_resnet):
-            u  = self.u_stream[i](u, a=u_list.pop()+ class_embedding)
+            u  = self.u_stream[i](u, a=u_list.pop()+ class_embedding, class_embed=class_embedding)
             class_embedding_2=class_embedding.size(1) *2
-            ul = self.ul_stream[i](ul, a=torch.cat((u, ul_list.pop()), 1)+class_embedding_2) #(B, embedding_dim)
+            ul = self.ul_stream[i](ul, a=torch.cat((u, ul_list.pop()), 1)+class_embedding_2, class_embed=class_embedding) #(B, embedding_dim)
 
         return u, ul
 
